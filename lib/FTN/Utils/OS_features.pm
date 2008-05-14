@@ -1,5 +1,5 @@
 package FTN::Utils::OS_features;
-our $VERSION = "1.00";
+our $VERSION = "1.01";
 
 BEGIN
 {
@@ -47,7 +47,24 @@ FTN::OS_features - an auxiliary module for FTN::Forum and FTN::Pkt
 
 =head1 DESCRIPTION
 
-None available yet.
+This module detects some features of your Operating System. Two variables are exported.
+
+=over 8
+
+=item C<$needs_binmode>
+
+Boolean. I<True> if this OS differ binary and text files (e.g. Windows), I<false> otherwise (e.g. UNIX). 
+
+=item C<$dir_separator>
+
+String. A char to separate directories in a path.
+
+=back
+
+=head1 NOTES
+
+I wonder if it will work correctly on MacOS X which is actually UNIX but may be labeled as 'MacOS'.
+Unfortunately I don't know what is C<$Config::Config{'osname'}> in MacOS X.
 
 =head1 CREDITS
 
@@ -57,7 +74,7 @@ Thanks for Lincoln D. Stein, an author of CGI.pm
 
 Copyright 2008 Dmitry V. Kolvakh
 
-This program is free software. 
+This library is free software. 
 You may copy or redistribute it under the same terms as Perl itself.
 
 =head1 AUTHOR

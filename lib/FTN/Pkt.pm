@@ -2,11 +2,11 @@ package FTN::Pkt;
 
 use strict;
 use warnings;
-require 5.8.0;
-our $VERSION = "1.00";
+require 5.6.0;
+our $VERSION = "1.01";
+
 package FTN::Pkt::utils;
 
-require 5.6.0;
 use strict;
 use warnings;
 require Exporter;
@@ -25,6 +25,9 @@ use Time::HiRes qw(usleep gettimeofday);
 
 my $PRECISION = 0.1;
 
+#========================================================
+
+# Here is some auxiliary functions. Not for client use.
 
 #========================================================
 
@@ -70,7 +73,6 @@ sub hextime()
 {
     my $msec = int(gettimeofday() / $PRECISION) % 0xffffffff;
     return sprintf("%08x", $msec);
-#    return sprintf("%08x", time);
 }
 
 #========================================================
@@ -81,7 +83,6 @@ sub my_sleep()
 }
 
 #========================================================
-
 
 package FTN::Msg;
 
@@ -153,8 +154,10 @@ sub as_string()
 }
 
 #========================================================
+#
+# Internal method. Returns binary representation of the message inside the packet.
 
-sub packed()
+sub _packed()
 {
     my FTN::Msg $self = shift;
     my ($fromzone, $fromnet, $fromnode, $frompoint) = parse_addr($self->{fromaddr});
@@ -252,8 +255,10 @@ sub add_msg($)
 }
 
 #========================================================
+#
+# Internal method. Returns binary representation of the packet.
 
-sub packed()
+sub _packed()
 {
     my FTN::Pkt $self = shift;
     my ($fromzone, $fromnet, $fromnode, $frompoint) = parse_addr($self->{fromaddr});
@@ -269,7 +274,7 @@ sub packed()
                       $fromzone, $tozone, $frompoint, $topoint, 0;
     foreach my $msg(@{$self->{_msgs}}){
         $msg->update(frompkt => $self->{fromaddr}, topkt => $self->{toaddr});
-        $result .= $msg->packed();
+        $result .= $msg->_packed();
     }
     $result .= "\x00\x00";
     return $result;
@@ -293,13 +298,14 @@ sub write_pkt()
     }
     open(PKT, ">", $filename) or die "can't open $filename : $!";
     binmode PKT if $needs_binmode;
-    print PKT $self->packed();
+    print PKT $self->_packed();
     close PKT;
     for(my $i = 0; -e $newname; $i++){
         if($i >= scalar @repl){die "can't make unique pkt name";}
         substr($newname, -12, 1) = $repl[$i];
     }
-    rename $filename, $newname or die "can't rename $filename -> $newname : $!"
+    rename $filename, $newname or die "can't rename $filename -> $newname : $!";
+    return $newname;
 }
 
 #========================================================
@@ -310,22 +316,104 @@ sub write_pkt()
 
 FTN::Pkt - a module to make FTN-style mail packets
 
+=head1 SYNOPSIS
+    
+    my $pkt = new FTN::Pkt (
+        fromaddr => '2:9999/999.128',
+        toaddr   => '2:9999/999',
+        password => 'password',
+        inbound  => '/var/spool/fido/inbound'
+    );    
+    my $msg = new FTN::Msg(
+        fromname => 'Vassily Poupkine',
+        toname   => 'Poupa Vassilyev',
+        subj     => 'Hello',
+        text     => "Hi, Poupa!\n\nHow do you do?\n\n--\nVassily",
+        fromaddr => '2:9999/999.128',
+        origin   => 'My cool origin',
+        tearline => '/usr/bin/perl',
+        area     => 'poupa.local',
+        reply    => '2:9999/999.1 fedcba987',
+        pid      => 'Super-Duper Editor v0.01',
+        tid      => 1
+    );
+    $pkt->add_msg($msg);    
+    $pkt->write_pkt();
+
 =head1 DESCRIPTION
 
-None available yet. Sorry :-( 
+This module can be used to make FTN-style mail packets. Either echomail or netmail are supported.
+You can specify @REPLY cludge. @MSGID may be auto-generated or specified manually.
 
-Will be written in future.
+If C<area> present then message treated as echomail. Othervise it becomes netmail (C<toaddr> required).
+
+=head1 FTN::Msg methods
+
+=over 8
+
+=item C<new(%hash)>
+
+A constructor. Some initialization parameters can be passed via C<%hash>. 
+Possible ones are: 
+C<fromaddr toaddr fromname toname tearline origin subj text area msgid reply pid tid>.
+
+All parameters are text but C<tid> is boolean. If I<true> then @TID cludge will be added to message.
+
+=item C<update(%hash)>
+
+Changes the message. See C<FTN::Msg::new> for parameters allowed.
+
+=item C<make_msgid([$msgid])>
+
+Generates @MSGID, sets it inside the message and and returns it. Possible parameter is only second part of @MSGID, without source address.
+If omitted all @MSGID parts will be auto-generated. Auto-generation method use I<unixtime> as basis, 
+so don't allow more than one process to generate @MSGIDs in the same time.
+
+=item C<as_string()>
+
+Returns string representation of message. For debugging.
+
+=back
+
+=head1 FTN::Pkt methods
+
+=over 8
+
+=item C<new(%hash)>
+
+A constructor. Some initialization parameters can be passed via C<%hash>. 
+Possible ones are: C<fromaddr toaddr password inbound>
+
+=item C<update(%hash)>
+
+Changes the message. See C<FTN::Pkt::new> for parameters allowed.
+
+=item C<add_msg($msg)>
+
+Adds a message to the packet. C<$msg> must be a reference to C<FTN::Msg> object.
+
+=item C<write_pkt()>
+
+Writes the packet to a disk into C<inbound> directory. Filename is auto-generated. 
+Don't allow more than one process to write at the same time. Returns resulting filename.
+
+=back
+
+=head1 LIMITATIONS
+
+CP866 codepage is hardcoded.
 
 =head1 REQUIREMENTS
 
-In order to install and use this package you will need Perl version
-5.6 or better. 
+FTN::OS_features module required (included in this package). 
+
+Supported platforms: UNIX and Win32 have been tested. All others may work or not.
 
 =head1 COPYRIGHT
 
 Copyright 2008 Dmitry V. Kolvakh
 
-This program is free software. 
+This library is free software. 
 You may copy or redistribute it under the same terms as Perl itself.
 
 =head1 AUTHOR
