@@ -18,6 +18,7 @@ SYNOPSIS
             tearline => '/usr/bin/perl',
             area     => 'poupa.local',
             reply    => '2:9999/999.1 fedcba987',
+            date     => 1210918822,                    # unixtime format
             pid      => 'Super-Duper Editor v0.01',
             tid      => 1
         );
@@ -36,7 +37,7 @@ FTN::Msg methods
     "new(%hash)"
             A constructor. Some initialization parameters can be passed via
             %hash. Possible ones are: "fromaddr toaddr fromname toname
-            tearline origin subj text area msgid reply pid tid".
+            tearline origin subj text area msgid reply pid tid date".
 
             All parameters are text but "tid" is boolean. If *true* then
             @TID cludge will be added to message.
@@ -47,9 +48,10 @@ FTN::Msg methods
     "make_msgid([$msgid])"
             Generates @MSGID, sets it inside the message and and returns it.
             Possible parameter is only second part of @MSGID, without source
-            address. If omitted all @MSGID parts will be auto-generated.
-            Auto-generation method use *unixtime* as basis, so don't allow
-            more than one process to generate @MSGIDs in the same time.
+            address. If parameter omitted then all @MSGID parts will be
+            auto-generated. Auto-generation method use *unixtime* as basis,
+            so don't allow more than one process to generate @MSGIDs in the
+            same time.
 
     "as_string()"
             Returns string representation of message. For debugging.
@@ -60,7 +62,7 @@ FTN::Pkt methods
             %hash. Possible ones are: "fromaddr toaddr password inbound"
 
     "update(%hash)"
-            Changes the message. See "FTN::Pkt::new" for parameters allowed.
+            Changes the packet. See "FTN::Pkt::new" for parameters allowed.
 
     "add_msg($msg)"
             Adds a message to the packet. $msg must be a reference to
@@ -75,7 +77,7 @@ LIMITATIONS
     CP866 codepage is hardcoded.
 
 REQUIREMENTS
-    FTN::OS_features module required.
+    FTN::OS_features module required (included in this package).
 
     Supported platforms: UNIX and Win32 have been tested. All others may
     work or not.

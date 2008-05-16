@@ -1,5 +1,5 @@
 package FTN::Utils::OS_features;
-our $VERSION = "1.01";
+our $VERSION = "1.02";
 
 BEGIN
 {
@@ -60,11 +60,6 @@ Boolean. I<True> if this OS differ binary and text files (e.g. Windows), I<false
 String. A char to separate directories in a path.
 
 =back
-
-=head1 NOTES
-
-I wonder if it will work correctly on MacOS X which is actually UNIX but may be labeled as 'MacOS'.
-Unfortunately I don't know what is C<$Config::Config{'osname'}> in MacOS X.
 
 =head1 CREDITS
 

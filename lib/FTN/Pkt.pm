@@ -3,7 +3,7 @@ package FTN::Pkt;
 use strict;
 use warnings;
 require 5.6.0;
-our $VERSION = "1.01";
+our $VERSION = "1.02";
 
 package FTN::Pkt::utils;
 
@@ -42,10 +42,12 @@ sub parse_addr($)
 
 #========================================================
 
-sub datetime
+sub datetime(;$)
 {
+    my $tm = shift;
+    $tm ||= time();
     my @MON = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec');
-    my @curtime = localtime(time);
+    my @curtime = localtime($tm);
     return strftime("%d ", @curtime).$MON[$curtime[4]].strftime(" %y  %H:%M:%S", @curtime);
 }
 
@@ -95,13 +97,9 @@ import FTN::Pkt::utils qw(:utils);
 #========================================================
 
 use fields qw(fromaddr toaddr fromname toname tearline origin subj text area msgid reply
-              topkt frompkt pid tid);
+              topkt frompkt pid tid date);
 
 #========================================================
-
-# fromaddr, toaddr, fromname, toname, tearline, origin, subj, text
-# area, msgid, reply
-# cludges
 
 sub new
 {
@@ -167,7 +165,7 @@ sub _packed()
     my $template = "v7a20";
     $self->make_msgid() unless ($self->{msgid});
     my $result = pack $template, 2, $pfromnode, $ptonode, $pfromnet, $ptonet,
-                      0, 0, datetime();
+                      0, 0, datetime($self->{date});
     $result .= trunkzero(($self->{toname} ? $self->{toname} : "All"), 35);
     $result .= trunkzero($self->{fromname}, 35);
     $result .= trunkzero(($self->{subj} ? $self->{subj} : ""), 71);
@@ -185,7 +183,8 @@ sub _packed()
     $result .= "\x01MSGID: $self->{msgid}\x0d";
     $result .= "\x01CHRS: CP866 2\x0d";
     $result .= "\x01PID: $self->{pid}\x0d" if $self->{pid};
-    $result .= sprintf("\x01TID: FTN::Pkt %s\x0d", $FTN::Pkt::VERSION) if $self->{tid};
+    $result .= sprintf("\x01TID: FTN::Pkt %s\x0d", $FTN::Pkt::VERSION) if $self->{tid}; 
+    $result .= "\x01Posted: ".datetime()."\x0d" if $self->{date};
     my $text = $self->{text};
     $text =~ s/\n/\xd/sg;
     $result .= $text;
@@ -334,6 +333,7 @@ FTN::Pkt - a module to make FTN-style mail packets
         tearline => '/usr/bin/perl',
         area     => 'poupa.local',
         reply    => '2:9999/999.1 fedcba987',
+        date     => 1210918822,                    # unixtime format
         pid      => 'Super-Duper Editor v0.01',
         tid      => 1
     );
@@ -355,7 +355,7 @@ If C<area> present then message treated as echomail. Othervise it becomes netmai
 
 A constructor. Some initialization parameters can be passed via C<%hash>. 
 Possible ones are: 
-C<fromaddr toaddr fromname toname tearline origin subj text area msgid reply pid tid>.
+C<fromaddr toaddr fromname toname tearline origin subj text area msgid reply pid tid date>.
 
 All parameters are text but C<tid> is boolean. If I<true> then @TID cludge will be added to message.
 
@@ -366,7 +366,7 @@ Changes the message. See C<FTN::Msg::new> for parameters allowed.
 =item C<make_msgid([$msgid])>
 
 Generates @MSGID, sets it inside the message and and returns it. Possible parameter is only second part of @MSGID, without source address.
-If omitted all @MSGID parts will be auto-generated. Auto-generation method use I<unixtime> as basis, 
+If parameter omitted then all @MSGID parts will be auto-generated. Auto-generation method use I<unixtime> as basis, 
 so don't allow more than one process to generate @MSGIDs in the same time.
 
 =item C<as_string()>
@@ -386,7 +386,7 @@ Possible ones are: C<fromaddr toaddr password inbound>
 
 =item C<update(%hash)>
 
-Changes the message. See C<FTN::Pkt::new> for parameters allowed.
+Changes the packet. See C<FTN::Pkt::new> for parameters allowed.
 
 =item C<add_msg($msg)>
 
